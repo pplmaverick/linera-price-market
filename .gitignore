@@ -1,0 +1,7 @@
+/target
+.env
+*.env
+linera.db
+*.db
+wallet.json
+*.json.bak

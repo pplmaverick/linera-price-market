@@ -1,5 +1,6 @@
 # Linera Price Market
 
+[![CI](https://github.com/pplmaverick/linera-price-market/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/pplmaverick/linera-price-market/actions/workflows/test.yml)
 ![Network](https://img.shields.io/badge/Linera-Conway_Testnet-blue)
 ![Rust](https://img.shields.io/badge/Rust-1.86.0-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)

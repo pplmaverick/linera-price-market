@@ -227,7 +227,7 @@ Several transitive dependencies (`serde_with`, `tonic`, `async-graphql`, `alloca
 - Contract deployed: CreateRound / PlaceBet / ResolveRound / Claim
 - Full e2e flow confirmed on-chain (tx hashes recorded)
 - Four chain-native features: multi-asset, cross-chain messaging, GraphQL leaderboard, experimental events
-- Unit tests: 5 cases covering all operations and edge cases
+- Unit tests: 10 cases covering all operations and edge cases
 
 **⬜ M2 — Mainnet**
 - Redeploy on Linera mainnet once launched

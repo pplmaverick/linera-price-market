@@ -1,7 +1,7 @@
 #![cfg_attr(target_arch = "wasm32", no_main)]
 
 use linera_sdk::{
-    linera_base_types::{Amount, TimeDelta, WithContractAbi},
+    linera_base_types::{AccountOwner, Amount, TimeDelta, WithContractAbi},
     views::{RootView, View},
     Contract, ContractRuntime,
 };
@@ -25,7 +25,7 @@ impl WithContractAbi for PriceMarketContract {
 impl Contract for PriceMarketContract {
     type Message = ();
     type InstantiationArgument = ();
-    type Parameters = ();
+    type Parameters = AccountOwner;
     type EventValue = ();
 
     /// 從持久化儲存載入合約狀態並與 runtime 綁定。
@@ -36,9 +36,10 @@ impl Contract for PriceMarketContract {
         PriceMarketContract { state, runtime }
     }
 
-    /// 合約首次部署時的初始化入口，確認 application parameters 可存取。
+    /// 合約首次部署時的初始化入口，將 oracle owner 寫入狀態。
     async fn instantiate(&mut self, _: ()) {
-        self.runtime.application_parameters();
+        let oracle_owner = self.runtime.application_parameters();
+        self.state.oracle_owner.set(Some(oracle_owner));
     }
 
     /// 接收並分派所有使用者操作到對應的 handler。
@@ -91,6 +92,8 @@ impl PriceMarketContract {
     /// # Errors
     /// - 若 `rounds.insert` 失敗則 panic `"Failed to insert round"`。
     async fn create_round(&mut self, asset: Asset, duration_secs: u64, start_price: u64) {
+        assert!(duration_secs > 0, "duration_secs must be positive");
+
         let now = self.runtime.system_time();
         let deadline = now.saturating_add(TimeDelta::from_secs(duration_secs));
         let counter = *self.state.round_counter.get();
@@ -145,6 +148,7 @@ impl PriceMarketContract {
         );
         assert!(amount > Amount::ZERO, "Bet amount must be positive");
 
+        // STUB: No actual token custody. Bet recorded in ledger only.
         round.bets.push(Bet { owner: caller, direction, amount });
         self.state
             .rounds
@@ -161,7 +165,16 @@ impl PriceMarketContract {
     /// # Errors
     /// - 回合不存在時 panic `"Round not found"`。
     /// - 回合狀態非 `Open` 時 panic `"Round is not open"`。
+    /// - 呼叫者非 oracle owner 時 panic `"only oracle owner can resolve"`。
+    /// - 尚未到達 deadline 時 panic `"round has not ended yet"`。
     async fn resolve_round(&mut self, round_id: u64, final_price: u64) {
+        let oracle_owner = *self.state.oracle_owner.get();
+        assert_eq!(
+            self.runtime.authenticated_signer(),
+            oracle_owner,
+            "only oracle owner can resolve"
+        );
+
         let mut round = self
             .state
             .rounds
@@ -171,6 +184,10 @@ impl PriceMarketContract {
             .expect("Round not found");
 
         assert_eq!(round.status, RoundStatus::Open, "Round is not open");
+        assert!(
+            self.runtime.system_time() >= round.deadline,
+            "round has not ended yet"
+        );
 
         round.end_price = final_price;
         round.status = RoundStatus::Settled;
@@ -255,7 +272,10 @@ impl PriceMarketContract {
                 let _payout = Amount::from_attos(
                     total_pot.to_attos() * caller_winning.to_attos() / total_winning.to_attos(),
                 );
-                // token 轉帳到 caller 留待後續整合 fungible token
+                // STUB: Token transfer not yet implemented.
+                // Payout amount is calculated correctly but not disbursed.
+                // TODO: integrate Linera fungible token transfer when available.
+                // Tracked: https://github.com/pplmaverick/linera-price-market/issues/1
 
                 round.claimed.push(caller);
             }
@@ -289,7 +309,7 @@ mod tests {
 
     fn make_contract(signer: AccountOwner) -> PriceMarketContract {
         let runtime = ContractRuntime::new()
-            .with_application_parameters(())
+            .with_application_parameters(signer)
             .with_system_time(Timestamp::from(0))
             .with_authenticated_signer(Some(signer));
         let state = PriceMarket::load(runtime.root_view_storage_context())
@@ -354,6 +374,7 @@ mod tests {
             amount: Amount::from_tokens(1),
         })
         .blocking_wait();
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
         c.execute_operation(Operation::ResolveRound {
             round_id: 0,
             final_price: 9_600_000,
@@ -382,6 +403,7 @@ mod tests {
             amount: Amount::from_tokens(1),
         })
         .blocking_wait();
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
         c.execute_operation(Operation::ResolveRound {
             round_id: 0,
             final_price: 2_900_000,
@@ -410,6 +432,7 @@ mod tests {
             amount: Amount::from_tokens(1),
         })
         .blocking_wait();
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
         c.execute_operation(Operation::ResolveRound {
             round_id: 0,
             final_price: 16_000,

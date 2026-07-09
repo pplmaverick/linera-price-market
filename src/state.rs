@@ -48,4 +48,5 @@ pub struct Round {
 pub struct PriceMarket {
     pub rounds: MapView<u64, Round>,
     pub round_counter: RegisterView<u64>,
+    pub oracle_owner: RegisterView<Option<AccountOwner>>,
 }

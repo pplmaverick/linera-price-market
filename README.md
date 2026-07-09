@@ -33,16 +33,17 @@ This project is not ported from EVM. Every design decision maps directly to a Li
 
 ## Architecture
 
+Single-chain design: all operations (CreateRound, PlaceBet, ResolveRound, Claim)
+execute on the application chain. Price data is fetched via HTTP oracle in the
+service layer (subject to committee http_request_allow_list on testnet).
+
 ```
-  User Microchain (single-owner)
-         │
-         │  cross-chain message: PlaceBet
-         ▼
-  Market Microchain (multi-owner)
+  Application Chain
   ┌──────────────────────────────────┐
   │  PriceMarket Contract            │
   │  ├── rounds: MapView<u64, Round> │
-  │  └── round_counter: u64          │
+  │  ├── round_counter: u64          │
+  │  └── oracle_owner: AccountOwner  │
   │                                  │
   │  Operations:                     │
   │  ├── CreateRound(asset, secs,    │
@@ -52,10 +53,6 @@ This project is not ported from EVM. Every design decision maps directly to a Li
   │  ├── ResolveRound(id, price)     │
   │  └── Claim(round_id)             │
   └──────────────────────────────────┘
-         │
-         │  cross-chain message: payout
-         ▼
-  User Microchain
 
   Service Layer (read-only, off-chain)
   ├── GraphQL: round(id), rounds(), price(asset)
@@ -69,8 +66,8 @@ This project is not ported from EVM. Every design decision maps directly to a Li
 ### 1. Multi-Asset Concurrent Rounds
 BTC, ETH, and SOL rounds run simultaneously with independent state. Each asset's rounds do not interfere with one another — a property that falls naturally out of Linera's microchain architecture rather than requiring any locking mechanism.
 
-### 2. Cross-Chain Message Betting Flow
-Users interact from their own single-owner microchain. Bets are submitted as asynchronous cross-chain messages to the market's multi-owner chain. Winnings are routed back via the same mechanism. This is the core Linera primitive that EVM cannot replicate natively.
+### 2. Single-Chain State Machine
+CreateRound, PlaceBet, ResolveRound, and Claim all execute directly on the application chain against `MapView`-backed round state — no cross-chain messaging is involved in the current implementation. Cross-chain betting across microchains is planned; see Roadmap.
 
 ### 3. GraphQL Leaderboard via Service Layer
 The service layer exposes a native GraphQL interface for querying round state, bet history, and real-time prices. No external indexer required — this is built into the Linera SDK's service architecture.
@@ -233,6 +230,11 @@ Several transitive dependencies (`serde_with`, `tonic`, `async-graphql`, `alloca
 - Redeploy on Linera mainnet once launched
 - Update Application ID and owner chain references
 - Validate HTTP oracle allow-list status on mainnet committee
+
+**⬜ M3 — Feature Expansion**
+- Cross-chain betting: allow users on different microchains to place bets via cross-chain messages
+- Fungible token custody: real token deposit/withdrawal via Linera native token integration
+- Dynamic asset support: add/remove price feed assets without contract redeploy
 
 ---
 

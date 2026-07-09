@@ -25,8 +25,8 @@ This project is not ported from EVM. Every design decision maps directly to a Li
 | Problem | Generic EVM approach | Linera-native approach |
 |---|---|---|
 | Multi-asset concurrent rounds | Separate contracts or mutex locks | Independent microchain state per asset — no contention |
-| User participation | EOA sends tx to shared contract | User's single-owner microchain sends cross-chain message to market chain |
-| Winnings distribution | Pull-based withdraw from shared pool | Cross-chain message routes payout back to user's own chain |
+| User participation | EOA sends tx to shared contract | User sends operation directly to the application chain |
+| Winnings distribution | Pull-based withdraw from shared pool | Payout calculated and recorded on the application chain via `Claim` |
 | Historical query | Off-chain indexer (The Graph) | GraphQL exposed natively from service layer — no indexer needed |
 
 ---
@@ -223,7 +223,7 @@ Several transitive dependencies (`serde_with`, `tonic`, `async-graphql`, `alloca
 - Conway testnet wallet initialized, 100 LINERA funded
 - Contract deployed: CreateRound / PlaceBet / ResolveRound / Claim
 - Full e2e flow confirmed on-chain (tx hashes recorded)
-- Four chain-native features: multi-asset, cross-chain messaging, GraphQL leaderboard, experimental events
+- Three chain-native features: multi-asset, GraphQL leaderboard, experimental events (cross-chain messaging is not yet implemented; see M3)
 - Unit tests: 10 cases covering all operations and edge cases
 
 **⬜ M2 — Mainnet**

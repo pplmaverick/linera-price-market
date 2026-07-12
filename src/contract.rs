@@ -466,4 +466,169 @@ mod tests {
         // 第二次應 panic "Already claimed"
         c.execute_operation(Operation::Claim { round_id: 0 }).blocking_wait();
     }
+
+    #[test]
+    fn test_create_round_eth() {
+        let mut c = make_contract(owner(4));
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Eth,
+            duration_secs: 300,
+            start_price: 3_000_000,
+        })
+        .blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.asset, Asset::Eth);
+        assert_eq!(round.status, RoundStatus::Open);
+    }
+
+    #[test]
+    fn test_place_bet_eth_up() {
+        let mut c = make_contract(owner(4));
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Eth,
+            duration_secs: 300,
+            start_price: 3_000_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::PlaceBet {
+            round_id: 0,
+            direction: Direction::Up,
+            amount: Amount::from_tokens(1),
+        })
+        .blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.bets.len(), 1);
+        assert_eq!(round.bets[0].direction, Direction::Up);
+        assert_eq!(round.bets[0].owner, owner(4));
+    }
+
+    #[test]
+    fn test_resolve_eth_down_wins() {
+        let mut c = make_contract(owner(4));
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Eth,
+            duration_secs: 300,
+            start_price: 3_000_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::PlaceBet {
+            round_id: 0,
+            direction: Direction::Down,
+            amount: Amount::from_tokens(1),
+        })
+        .blocking_wait();
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
+        c.execute_operation(Operation::ResolveRound {
+            round_id: 0,
+            final_price: 2_900_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::Claim { round_id: 0 }).blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.status, RoundStatus::Settled);
+        assert_eq!(round.asset, Asset::Eth);
+        assert!(round.end_price < round.start_price);
+        assert!(round.claimed.contains(&owner(4)));
+    }
+
+    #[test]
+    fn test_create_round_sol() {
+        let mut c = make_contract(owner(5));
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Sol,
+            duration_secs: 300,
+            start_price: 15_000,
+        })
+        .blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.asset, Asset::Sol);
+        assert_eq!(round.status, RoundStatus::Open);
+    }
+
+    #[test]
+    fn test_resolve_sol_up_wins() {
+        let mut c = make_contract(owner(5));
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Sol,
+            duration_secs: 300,
+            start_price: 15_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::PlaceBet {
+            round_id: 0,
+            direction: Direction::Up,
+            amount: Amount::from_tokens(1),
+        })
+        .blocking_wait();
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
+        c.execute_operation(Operation::ResolveRound {
+            round_id: 0,
+            final_price: 16_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::Claim { round_id: 0 }).blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.status, RoundStatus::Settled);
+        assert_eq!(round.asset, Asset::Sol);
+        assert!(round.end_price > round.start_price);
+        assert!(round.claimed.contains(&owner(5)));
+    }
+
+    // 合約目前對平局（end_price == start_price）的處理：claim() 中
+    // winning_direction 為 None，兩個方向的下注者都會直接被標記為
+    // claimed（視為退款），不會因為押錯方向而 panic "No winning bets"。
+    // 實際 token 退款尚未實作（與獲勝分潤同為 STUB），這裡驗證的是
+    // claim 不 panic 且雙方都被記錄為已領取的實際行為。
+    #[test]
+    fn test_tie_refund() {
+        let up_bettor = owner(6);
+        let down_bettor = owner(7);
+
+        let mut c = make_contract(up_bettor);
+        c.execute_operation(Operation::CreateRound {
+            asset: Asset::Btc,
+            duration_secs: 300,
+            start_price: 9_500_000,
+        })
+        .blocking_wait();
+        c.execute_operation(Operation::PlaceBet {
+            round_id: 0,
+            direction: Direction::Up,
+            amount: Amount::from_tokens(1),
+        })
+        .blocking_wait();
+
+        c.runtime.set_authenticated_signer(Some(down_bettor));
+        c.execute_operation(Operation::PlaceBet {
+            round_id: 0,
+            direction: Direction::Down,
+            amount: Amount::from_tokens(1),
+        })
+        .blocking_wait();
+
+        c.runtime.set_system_time(Timestamp::from(300_000_000));
+        // 平局：final_price == start_price
+        c.runtime.set_authenticated_signer(Some(up_bettor));
+        c.execute_operation(Operation::ResolveRound {
+            round_id: 0,
+            final_price: 9_500_000,
+        })
+        .blocking_wait();
+
+        c.execute_operation(Operation::Claim { round_id: 0 }).blocking_wait();
+
+        c.runtime.set_authenticated_signer(Some(down_bettor));
+        c.execute_operation(Operation::Claim { round_id: 0 }).blocking_wait();
+
+        let round = c.state.rounds.get(&0).blocking_wait().unwrap().unwrap();
+        assert_eq!(round.status, RoundStatus::Settled);
+        assert_eq!(round.end_price, round.start_price);
+        assert!(round.claimed.contains(&up_bettor));
+        assert!(round.claimed.contains(&down_bettor));
+    }
 }

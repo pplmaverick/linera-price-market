@@ -21,7 +21,6 @@ pub enum Direction {
 pub enum RoundStatus {
     #[default]
     Open,
-    Locked,
     Settled,
 }
 

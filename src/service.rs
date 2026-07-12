@@ -172,7 +172,7 @@ impl PriceMarketService {
                 async_graphql::Error::new(format!("Missing price for {coin_id}"))
             })?;
 
-        // USD 乘以 100 存為 u64（精度 0.01 USD）
-        Ok((price_f64 * 100.0) as u64)
+        // USD 乘以 100 存為 u64（精度 0.01 USD），四捨五入避免系統性低估
+        Ok((price_f64 * 100.0).round() as u64)
     }
 }

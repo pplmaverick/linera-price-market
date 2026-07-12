@@ -269,9 +269,33 @@ impl PriceMarketContract {
                     });
 
                 // payout = total_pot * caller_winning / total_winning
-                let _payout = Amount::from_attos(
-                    total_pot.to_attos() * caller_winning.to_attos() / total_winning.to_attos(),
-                );
+                //
+                // total_pot.to_attos() * caller_winning.to_attos() can overflow u128
+                // when multiplied directly (release builds wrap silently instead of
+                // panicking). Split into quotient + remainder first so the only
+                // multiplication left is remainder * caller_winning, which is bounded
+                // by total_winning_attos^2 instead of total_pot_attos * caller_winning_attos.
+                // checked_mul/checked_add turn any residual overflow into an explicit
+                // panic rather than a silently wrapped (and wrong) payout.
+                let total_pot_attos = total_pot.to_attos();
+                let caller_winning_attos = caller_winning.to_attos();
+                let total_winning_attos = total_winning.to_attos();
+
+                let quotient = total_pot_attos / total_winning_attos;
+                let remainder = total_pot_attos % total_winning_attos;
+
+                let payout_attos = quotient
+                    .checked_mul(caller_winning_attos)
+                    .expect("payout overflow: quotient * caller_winning")
+                    .checked_add(
+                        remainder
+                            .checked_mul(caller_winning_attos)
+                            .expect("payout overflow: remainder * caller_winning")
+                            / total_winning_attos,
+                    )
+                    .expect("payout overflow: final addition");
+
+                let _payout = Amount::from_attos(payout_attos);
                 // STUB: Token transfer not yet implemented.
                 // Payout amount is calculated correctly but not disbursed.
                 // TODO: integrate Linera fungible token transfer when available.

@@ -61,3 +61,11 @@ linera service --port 8080
 | placeBet | 9be2dc0818bbd2911ec89bec39da93d01d75efa28f956e34aec4f3f5cb8b4624 |
 | resolveRound | f51333bc4260b1527bbd6e2818880b7ce78dc9742ca13c1acc6ed4e68af90182 |
 | claim | 93a042729511018bae606c02931888ff0ea48d52627a5e6b6910888bb77d7d42 |
+
+### 2026-07-12 — Week 5 e2e (SOL)
+| Operation | Tx Hash |
+|---|---|
+| createRound | 5a5867c2ffc2fd5c700717e07432e9316528fb07a5a28a6ba6b0638e39f5a825 |
+| placeBet | 06f04f5aae201f1670ffe9cc1907bf2023cef730d1b96ad50db4c695eac03808 |
+| resolveRound | 67c6962acf70f66bd8d3b4ad01d36d9bc1ab626e39417496300aa2a38eae7afb |
+| claim | 03bbf12fc10c1c1242daace21f24c55b329c9def5d004978266504401881a1c5 |

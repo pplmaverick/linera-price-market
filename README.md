@@ -72,9 +72,6 @@ CreateRound, PlaceBet, ResolveRound, and Claim all execute directly on the appli
 ### 3. GraphQL Leaderboard via Service Layer
 The service layer exposes a native GraphQL interface for querying round state, bet history, and real-time prices. No external indexer required — this is built into the Linera SDK's service architecture.
 
-### 4. Experimental Events (SDK v0.15)
-Every bet placement and round settlement emits an on-chain event using the `emit_event!` macro introduced in linera-sdk 0.15. This provides a complete, queryable history of all market activity — the Linera equivalent of Solidity's `emit Event()`.
-
 ---
 
 ## Deployed Application
@@ -223,8 +220,8 @@ Several transitive dependencies (`serde_with`, `tonic`, `async-graphql`, `alloca
 - Conway testnet wallet initialized, 100 LINERA funded
 - Contract deployed: CreateRound / PlaceBet / ResolveRound / Claim
 - Full e2e flow confirmed on-chain (tx hashes recorded)
-- Three chain-native features: multi-asset, GraphQL leaderboard, experimental events (cross-chain messaging is not yet implemented; see M3)
-- Unit tests: 10 cases covering all operations and edge cases
+- Two chain-native features: multi-asset, GraphQL leaderboard (cross-chain messaging and on-chain event logging are not yet implemented; see M3)
+- Unit tests: 11 cases covering all operations and edge cases
 
 **⬜ M2 — Mainnet**
 - Redeploy on Linera mainnet once launched

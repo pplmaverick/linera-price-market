@@ -222,11 +222,13 @@ Several transitive dependencies (`serde_with`, `tonic`, `async-graphql`, `alloca
 - Full e2e flow confirmed on-chain (tx hashes recorded)
 - Two chain-native features: multi-asset, GraphQL leaderboard (cross-chain messaging and on-chain event logging are not yet implemented; see M3)
 - Unit tests: 11 cases covering all operations and edge cases
+- Multi-bet simulation script (`scripts/multi_bet.sh`): sequential UP/DOWN bets with claim flow
 
 **⬜ M2 — Mainnet**
 - Redeploy on Linera mainnet once launched
 - Update Application ID and owner chain references
 - Validate HTTP oracle allow-list status on mainnet committee
+- Multi-account bet simulation: current testnet wallet only holds one signing key (ADMIN chain has no owner key), so `scripts/multi_bet.sh` simulates concurrent bettors by having one address bet both UP and DOWN; true multi-user testing needs additional wallet keys provisioned
 
 **⬜ M3 — Feature Expansion**
 - Cross-chain betting: allow users on different microchains to place bets via cross-chain messages

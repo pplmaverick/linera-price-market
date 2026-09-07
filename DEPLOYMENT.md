@@ -85,3 +85,37 @@ linera service --port 8080
 | placeBet | 44b3cd41e784ed60b3e1288802d5ae5db17f4df05805cc53334b92ad8dfce574 |
 | resolveRound | 1776814a4d5a9af87de2fbe4af154663c9b5893acb1e2b9108e5b214ffe02090 |
 | claim | cc4f4656778c6b55d0d6a362837f2170dfd1c83ad4e005bcb7db899ac5b5af09 |
+
+### 2026-09-07 — Week 9 e2e (SOL)
+| Operation | Tx Hash |
+|---|---|
+| createRound | d056179f7151ab5e90b80459bef8b87430488998495a8bd60e2e62c2ab1bd64d |
+| placeBet | 1a49f1e274569071230f211ac246bfdb42cd082d4f6fef462e998d30ecfd2c0d |
+| resolveRound | 2f6121111d59a2b634459246149955059bfa881ecc27a52ce592e7bdd2a765af |
+| claim | f8a8576feca426ee99d728365a615384cb08c8c426d14b145431f9f7bdd10c29 |
+
+Round 7 (SOL): startPrice 10514 ($105.14) → endPrice 10516 ($105.16), UP wins.
+
+### 2026-09-07 — Week 10 e2e (BTC), round open — resolves 2026-09-21
+| Operation | Tx Hash |
+|---|---|
+| createRound | 65ed9a808b54d76b0e7650855ed67404367e794fde0f6b27684caf262e63a6ff |
+
+Round 8 (BTC): startPrice 7980400 ($79,804), durationSecs 1209600 (14 days), deadline 2026-09-21 14:08:38 CST. No bets placed yet; placeBet/resolveRound/claim rows to be added when the round settles.
+
+## Validation Runs
+
+Ad-hoc verification runs, not part of the biweekly maintenance rotation.
+
+### 2026-09-07 — `scripts/multi_bet.sh` validation (round 9, BTC)
+Verifies the contract allows a single caller to place multiple bets (UP then DOWN) in the same round, and that a single `claim` call correctly settles only the winning direction.
+
+| Operation | Tx Hash |
+|---|---|
+| createRound | 8ee6f82ab4909c7545bbd9bb2e8948e0df9acf5b4b2fe9468e9d2777b242152d |
+| placeBet (UP) | 009d082e2351d371e426fd2131e746e5af8d36fadf2e3e051741ff8c792602af |
+| placeBet (DOWN) | e1554c9d9b2dee6d09360eb487ab2793e914e097c06b4f5f9f1b71fd3fff456e |
+| resolveRound | eb836dee17e7461051064e925c7ee0f24adf254537a6a921bc373941dc8d5f95 |
+| claim | 74416eba88e27a50012b462190143f0e75e4a1560f2a006130b60359c63633cd |
+
+Round 9 (BTC): startPrice 6500000 ($65,000) → endPrice 6550000 ($65,500), UP wins. Single `claim` call settled both bets from the same owner, paying only the winning UP bet.
